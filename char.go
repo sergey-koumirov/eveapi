@@ -15,6 +15,10 @@ const (
 	MarketOrdersURL = "/char/MarketOrders.xml.aspx"
     //WalletTransactionsURL is the url for the wallet transactions endpoint
 	WalletTransactionsURL = "/char/WalletTransactions.xml.aspx"
+    //CharacterSheetURL is the url for the character sheet endpoint
+    CharacterSheetURL = "/char/CharacterSheet.xml.aspx"
+
+    IndustryJobsURL = "/char/IndustryJobs.xml.aspx"
 )
 
 //AccountBalance is defined in corp.go
@@ -81,12 +85,12 @@ type MarketOrdersResult struct {
 //MarketOrder is either a sell order or buy order
 type MarketOrder struct {
 	OrderID      int     `xml:"orderID,attr"`
-	CharID       int     `xml:"charID,attr"`
-	StationID    int     `xml:"stationID,attr"`
+	CharID       int64   `xml:"charID,attr"`
+	StationID    int64   `xml:"stationID,attr"`
 	VolEntered   int     `xml:"volEntered,attr"`
 	VolRemaining int64   `xml:"volRemaining,attr"`
 	MinVolume    int     `xml:"minVolume,attr"`
-	TypeID       int     `xml:"typeID,attr"`
+	TypeID       int64   `xml:"typeID,attr"`
 	Range        int     `xml:"range,attr"`
 	Division     int     `xml:"accountKey,attr"`
 	Escrow       float64 `xml:"escrow,attr"`
@@ -159,4 +163,95 @@ func (api API) WalletTransactions(charID int64, accountKey int64, fromID int64, 
 
 func (api API) SimpleWalletTransactions(charID int64, fromID int64) (*WalletTransactionsResult, error) {
     return api.WalletTransactions(charID, 1000, fromID, 2560)
+}
+
+type Row struct {
+    TypeID      int64 `xml:"typeID,attr"`
+    Published   bool  `xml:"published,attr"`
+    Level       int64 `xml:"level,attr"`
+    SkillPoints int64 `xml:"skillpoints,attr"`
+}
+
+type Rowset struct{
+    Name string `xml:"name,attr"`
+    Rows []Row  `xml:"row"`
+}
+
+type CharacterSheetResult struct {
+    APIResult
+    Rowsets []Rowset `xml:"result>rowset"`
+    Skills []Row
+}
+
+func (api API) CharacterSheet(charID int64) (*CharacterSheetResult, error) {
+    output := CharacterSheetResult{}
+    args := url.Values{}
+    args.Add("characterID", strconv.FormatInt(charID,10))
+    err := api.Call(CharacterSheetURL, args, &output)
+    if err != nil {
+        return nil, err
+    }
+    if output.Error != nil {
+        return nil, output.Error
+    }
+    for _, v := range output.Rowsets{
+        if v.Name == "skills"{
+            output.Skills = v.Rows
+        }
+    }
+    return &output, nil
+}
+
+
+
+type Job struct {
+    JobID           int64  `xml:"jobID,attr"`
+    InstallerID     int64  `xml:"installerID,attr"`
+    InstallerName   string `xml:"installerName,attr"`
+    FacilityID      int64  `xml:"facilityID,attr"`
+    SolarSystemID   int64  `xml:"solarSystemID,attr"`
+    SolarSystemName string `xml:"solarSystemName,attr"`
+    StationID       int64  `xml:"stationID,attr"`
+    ActivityID      int64  `xml:"activityID,attr"` //1 - mnf 4 - im.me
+    BlueprintID     int64  `xml:"blueprintID,attr"`
+    BlueprintTypeID int64  `xml:"blueprintTypeID,attr"`
+    BlueprintTypeName string `xml:"blueprintTypeName,attr"`
+    BlueprintLocationID int64 `xml:"blueprintLocationID,attr"`
+    OutputLocationID int64 `xml:"outputLocationID,attr"`
+    Runs            int64  `xml:"runs,attr"`
+    Cost            float64 `xml:"cost,attr"`
+    TeamID          int64  `xml:"teamID,attr"`
+    LicensedRuns    int64  `xml:"licensedRuns,attr"`
+    Probability     int64  `xml:"probability,attr"`
+    ProductTypeID   int64  `xml:"productTypeID,attr"`
+    ProductTypeName string `xml:"productTypeName,attr"`
+    Status          int64  `xml:"status,attr"`
+    TimeInSeconds   int64  `xml:"timeInSeconds,attr"`
+    StartDate       eveTime `xml:"startDate,attr"`
+    EndDate         eveTime `xml:"endDate,attr"`
+    PauseDate       eveTime `xml:"pauseDate,attr"`
+    CompletedDate   eveTime `xml:"completedDate,attr"`
+    CompletedCharacterID int64 `xml:"completedCharacterID,attr"`
+    SuccessfulRuns  int64 `xml:"successfulRuns,attr"`
+}
+
+
+
+type IndustryJobsResult struct {
+    APIResult
+    Jobs []Job `xml:"result>rowset>row"`
+}
+
+func (api API) IndustryJobs(charID int64) (*IndustryJobsResult, error) {
+    output := IndustryJobsResult{}
+    args := url.Values{}
+    args.Add("characterID", strconv.FormatInt(charID,10))
+    err := api.Call(IndustryJobsURL, args, &output)
+    if err != nil {
+        return nil, err
+    }
+    if output.Error != nil {
+        return nil, output.Error
+    }
+    return &output, nil
 }
