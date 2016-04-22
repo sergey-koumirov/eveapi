@@ -286,6 +286,7 @@ type Contract struct {
 
     IssuerName      string
     IssuerCorpName  string
+    ContractItems   []ContractItem
 
 }
 
@@ -332,7 +333,38 @@ func (api API) Contracts(charID int64) (*ContractsResult, error) {
                 output.Contracts[i].IssuerCorpName = rec.Name
             }
         }
+
+        items,_ := api.ContractItems(charID, ct.ContractID)
+        output.Contracts[i].ContractItems = items.ContractItems
     }
 
+    return &output, nil
+}
+
+
+type ContractItem struct {
+    RecordID    int64  `xml:"recordID,attr"`    // Unique Identifier for the contract.
+    TypeID	    int64  `xml:"typeID,attr"`      // Type ID for item.
+    Quantity	int64  `xml:"quantity,attr"`    // Number of items in the stack.
+    RawQuantity	int64  `xml:"rawQuantity,attr"` // This attribute will only show up if the quantity is a negative number in the DB. Negative quantities are in fact codes, -1 indicates that the item is a singleton (non-stackable). If the item happens to be a Blueprint, -1 is an Original and -2 is a Blueprint Copy.
+    Singleton	int64  `xml:"singleton,attr"`   // 1 if this is a singleton item, 0 if not.
+    Included	int64  `xml:"included,attr"`    // 1 if the contract issuer has submitted this item with the contract, 0 if the isser is asking for this item in the contract.
+}
+type ContractItemsResult struct {
+    APIResult
+    ContractItems []ContractItem `xml:"result>rowset>row"`
+}
+func (api API) ContractItems(charID int64, contractID int64) (*ContractItemsResult, error) {
+    output := ContractItemsResult{}
+    args := url.Values{}
+    args.Add("characterID", strconv.FormatInt(charID,10))
+    args.Add("contractID", strconv.FormatInt(contractID,10))
+    err := api.Call(ContractItemsURL, args, &output)
+    if err != nil {
+        return nil, err
+    }
+    if output.Error != nil {
+        return nil, output.Error
+    }
     return &output, nil
 }
