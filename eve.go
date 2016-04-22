@@ -9,6 +9,7 @@ const (
 	RefTypesURL     = "/Eve/RefTypes.xml.aspx"
 	AllianceListURL = "/Eve/AllianceList.xml.aspx"
 	CharacterIDURL  = "/eve/CharacterID.xml.aspx"
+    CharacterNameURL  = "/eve/CharacterName.xml.aspx"
 )
 
 // CharacterName calls the /eve/CharacterName.xml.aspx endpoint with the parameter chars, which is a comma separate string of character names.
@@ -27,20 +28,35 @@ func (api API) CharacterName(chars string) (*CharacterNameResult, error) {
 	return &output, nil
 }
 
+func (api API) IdsToNames(chars string) (*CharacterNameResult, error) {
+    output := CharacterNameResult{}
+    arguments := url.Values{}
+    arguments.Add("ids", chars)
+    err := api.Call(CharacterNameURL, arguments, &output)
+    if err != nil {
+        return nil, err
+    }
+    if output.Error != nil {
+        return nil, output.Error
+    }
+    return &output, nil
+}
+
+
 // Name2ID is a convenience wrapper around CharacterName.
 // It takes a single parameter char string which is the name of the character you want the characterID of.
 // It returns the characterID and any error encountered
-func (api API) Name2ID(char string) (string, error) {
+func (api API) Name2ID(char string) (int64, error) {
 	names, err := api.CharacterName(char)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	if len(names.Names) == 1 && names.Names[0].ID != "0" {
+	if len(names.Names) == 1 && names.Names[0].ID != 0 {
 		return names.Names[0].ID, nil
 	} else {
-		return "", errors.New("Name2ID: No such character")
+		return 0, errors.New("Name2ID: No such character")
 	}
-	return "", nil
+	return 0, nil
 }
 
 // Namees2ID is a convenience wrapper around CharacterName.
@@ -56,7 +72,7 @@ func (api API) Names2ID(char string) ([]CharacterNameRow, error) {
 
 // CharacterNameRow represents a single row in CharacterNameResult
 type CharacterNameRow struct {
-	ID   string `xml:"characterID,attr"`
+	ID   int64 `xml:"characterID,attr"`
 	Name string `xml:"name,attr"`
 }
 type CharacterNameResult struct {

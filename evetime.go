@@ -16,7 +16,7 @@ func (c eveTime) String() string {
 func (c *eveTime) UnmarshalXMLAttr(attr xml.Attr) error {
 	parse, err := time.Parse(dateFormat, attr.Value)
 	if err != nil {
-		return err
+		return nil
 	}
 	*c = eveTime{parse}
 	return nil

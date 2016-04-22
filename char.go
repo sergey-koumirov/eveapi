@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+    "strings"
 )
 
 const (
@@ -19,6 +20,9 @@ const (
     CharacterSheetURL = "/char/CharacterSheet.xml.aspx"
 
     IndustryJobsURL = "/char/IndustryJobs.xml.aspx"
+
+    ContractsURL = "/char/Contracts.xml.aspx"
+    ContractItemsURL = "/char/ContractItems.xml.aspx"
 )
 
 //AccountBalance is defined in corp.go
@@ -253,5 +257,82 @@ func (api API) IndustryJobs(charID int64) (*IndustryJobsResult, error) {
     if output.Error != nil {
         return nil, output.Error
     }
+    return &output, nil
+}
+
+type Contract struct {
+    ContractID      int64   `xml:"contractID,attr"`      //Unique Identifier for the contract.
+    IssuerID        int64   `xml:"issuerID,attr"`	     //Character ID for the issuer.
+    IssuerCorpID    int64   `xml:"issuerCorpID,attr"`   //Characters corporation ID for the issuer.
+    AssigneeID      int64   `xml:"assigneeID,attr"`     //ID to whom the contract is assigned, can be corporation or character ID.
+    AcceptorID      int64   `xml:"acceptorID,attr"`     //Who will accept the contract. If assigneeID is same as acceptorID then CharacterID else CorporationID (The contract accepted by the corporation).
+    StartStationID  int32   `xml:"startStationID,attr"` //Start station ID (for Couriers contract).
+    EndStationID    int32   `xml:"endStationID,attr"`   //End station ID (for Couriers contract).
+    Type            string  `xml:"type,attr"`           //Type of the contract (ItemExchange, Courier, Loan or Auction).
+    Status          string  `xml:"status,attr"`         //Status of the the contract (Outstanding, Deleted, Completed, Failed, CompletedByIssuer, CompletedByContractor, Cancelled, Rejected, Reversed or InProgress)
+    Title           string  `xml:"title,attr"`          //Title of the contract
+    ForCorp         int32   `xml:"forCorp,attr"`        //1 if the contract was issued on behalf of the issuer's corporation, 0 otherwise
+    Availability    string  `xml:"availability,attr"`   //Public or Private
+    DateIssued      eveTime `xml:"dateIssued,attr"`     //Сreation date of the contract
+    DateExpired     eveTime `xml:"dateExpired,attr"`    //Expiration date of the contract
+    DateAccepted    eveTime `xml:"dateAccepted,attr"`   //Date of confirmation of contract
+    NumDays         int32   `xml:"numDays,attr"`        //Number of days to perform the contract
+    DateCompleted   eveTime `xml:"dateCompleted,attr"`  //Date of completed of contract
+    Price           float64 `xml:"price,attr"`          //Price of contract (for ItemsExchange and Auctions)
+    Reward          float64 `xml:"reward,attr"`         //Remuneration for contract (for Couriers only)
+    Collateral      float64 `xml:"collateral,attr"`     //Collateral price (for Couriers only)
+    Buyout          float64 `xml:"buyout,attr"`         //Buyout price (for Auctions only)
+    Volume          float64 `xml:"volume,attr"`         //Volume of items in the contract
+
+    IssuerName      string
+    IssuerCorpName  string
+
+}
+
+type ContractsResult struct {
+    APIResult
+    Contracts []Contract `xml:"result>rowset>row"`
+}
+
+func (api API) Contracts(charID int64) (*ContractsResult, error) {
+    output := ContractsResult{}
+    args := url.Values{}
+    args.Add("characterID", strconv.FormatInt(charID,10))
+    err := api.Call(ContractsURL, args, &output)
+    if err != nil {
+        return nil, err
+    }
+    if output.Error != nil {
+        return nil, output.Error
+    }
+
+    ids := make(map[int64]int64)
+    jIds := make([]string,0)
+    for _, c := range output.Contracts {
+        _, exists := ids[c.IssuerID]
+        if(!exists){
+            ids[c.IssuerID] = 1
+            jIds = append(jIds, strconv.FormatInt(c.IssuerID,10) )
+        }
+        _, exists = ids[c.IssuerCorpID]
+        if(!exists){
+            ids[c.IssuerCorpID] = 1
+            jIds = append(jIds, strconv.FormatInt(c.IssuerCorpID,10) )
+        }
+    }
+
+    names, _ := api.IdsToNames( strings.Join(jIds,",") )
+
+    for i, ct := range output.Contracts {
+        for _, rec := range names.Names{
+            if(ct.IssuerID == rec.ID){
+                output.Contracts[i].IssuerName = rec.Name
+            }
+            if(ct.IssuerCorpID == rec.ID){
+                output.Contracts[i].IssuerCorpName = rec.Name
+            }
+        }
+    }
+
     return &output, nil
 }
