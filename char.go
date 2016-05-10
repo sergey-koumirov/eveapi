@@ -22,7 +22,10 @@ const (
     IndustryJobsURL = "/char/IndustryJobs.xml.aspx"
 
     ContractsURL = "/char/Contracts.xml.aspx"
+
     ContractItemsURL = "/char/ContractItems.xml.aspx"
+
+    AssetListURL = "/char/AssetList.xml.aspx"
 )
 
 //AccountBalance is defined in corp.go
@@ -360,6 +363,38 @@ func (api API) ContractItems(charID int64, contractID int64) (*ContractItemsResu
     args.Add("characterID", strconv.FormatInt(charID,10))
     args.Add("contractID", strconv.FormatInt(contractID,10))
     err := api.Call(ContractItemsURL, args, &output)
+    if err != nil {
+        return nil, err
+    }
+    if output.Error != nil {
+        return nil, output.Error
+    }
+    return &output, nil
+}
+
+
+type Asset struct {
+    ItemID      int64  `xml:"itemID,attr"`      // Unique ID for this item. The ID of an item is stable if that item is not repackaged, stacked, detached from a stack, assembled, or otherwise altered. If an item is changed in one of these ways, then the ID will also change (see notes below).
+    LocationID  int64  `xml:"locationID,attr"`  // References a solar system or station. Note that in the nested XML response this column is not present in the sub-asset lists, as those share the locationID of their parent node. Example: a module in a container in a ship in a station.. Whereas the flat XML returns a locationID for each item. (See the notes on how to resolve the locationID to a solar system or station)
+    TypeID      int64  `xml:"typeID,attr"`      // The type of this item.
+    Quantity    int64  `xml:"quantity,attr"`    // How many items are in this stack.
+    Flag        int64  `xml:"flag,attr"`        // Indicates something about this item's storage location. The flag is used to differentiate between hangar divisions, drone bay, fitting location, and similar. Please see the Inventory Flags documentation.
+    Singleton   bool   `xml:"singleton,attr"`   // If True (1), indicates that this item is a singleton. This means that the item is not packaged.
+    RawQuantity int64  `xml:"rawQuantity,attr"` // Items in the AssetList (and ContractItems) now include a rawQuantity attribute if the quantity in the DB is negative (see notes).
+
+    Assets      []Asset `xml:"rowset>row"`
+
+}
+type AssetListResult struct {
+    APIResult
+    Assets []Asset `xml:"result>rowset>row"`
+}
+func (api API) AssetList(charID int64, flat int64) (*AssetListResult, error) {
+    output := AssetListResult{}
+    args := url.Values{}
+    args.Add("characterID", strconv.FormatInt(charID,10))
+    args.Add("flat", strconv.FormatInt(flat,10))
+    err := api.Call(AssetListURL, args, &output)
     if err != nil {
         return nil, err
     }
