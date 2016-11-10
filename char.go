@@ -104,6 +104,8 @@ type MarketOrder struct {
 	Price        float64 `xml:"price,attr"`
 	IsBuyOrder   bool    `xml:"bid,attr"`
 	Issued       eveTime `xml:"issued,attr"`
+	Duration     int     `xml:"duration,attr"`
+
 }
 
 //MarketOrders returns the market orders for a given character
