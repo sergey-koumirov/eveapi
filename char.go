@@ -105,6 +105,7 @@ type MarketOrder struct {
 	IsBuyOrder   bool    `xml:"bid,attr"`
 	Issued       eveTime `xml:"issued,attr"`
 	Duration     int     `xml:"duration,attr"`
+    OrderState   int64   `xml:"orderState,attr"`
 
 }
 
