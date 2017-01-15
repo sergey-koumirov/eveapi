@@ -340,8 +340,12 @@ func (api API) Contracts(charID int64) (*ContractsResult, error) {
             }
         }
 
-        items,_ := api.ContractItems(charID, ct.ContractID)
-        output.Contracts[i].ContractItems = items.ContractItems
+        items,err := api.ContractItems(charID, ct.ContractID)
+        if err==nil {
+            output.Contracts[i].ContractItems = items.ContractItems
+        }else{
+            fmt.Println(err)
+        }
     }
 
     return &output, nil
