@@ -282,7 +282,7 @@ type Contract struct {
     DateIssued      eveTime `xml:"dateIssued,attr"`     //Сreation date of the contract
     DateExpired     eveTime `xml:"dateExpired,attr"`    //Expiration date of the contract
     DateAccepted    eveTime `xml:"dateAccepted,attr"`   //Date of confirmation of contract
-    NumDays         int32   `xml:"numDays,attr"`        //Number of days to perform the contract
+    NumDays         int64   `xml:"numDays,attr"`        //Number of days to perform the contract
     DateCompleted   eveTime `xml:"dateCompleted,attr"`  //Date of completed of contract
     Price           float64 `xml:"price,attr"`          //Price of contract (for ItemsExchange and Auctions)
     Reward          float64 `xml:"reward,attr"`         //Remuneration for contract (for Couriers only)
@@ -292,6 +292,8 @@ type Contract struct {
 
     IssuerName      string
     IssuerCorpName  string
+    AcceptorName    string
+    AssigneeName    string
     ContractItems   []ContractItem
 
 }
@@ -301,7 +303,7 @@ type ContractsResult struct {
     Contracts []Contract `xml:"result>rowset>row"`
 }
 
-func (api API) Contracts(charID int64) (*ContractsResult, error) {
+func (api API) Contracts(charID int64, loadItems bool) (*ContractsResult, error) {
     output := ContractsResult{}
     args := url.Values{}
     args.Add("characterID", strconv.FormatInt(charID,10))
@@ -326,6 +328,16 @@ func (api API) Contracts(charID int64) (*ContractsResult, error) {
             ids[c.IssuerCorpID] = 1
             jIds = append(jIds, strconv.FormatInt(c.IssuerCorpID,10) )
         }
+        _, exists = ids[c.AssigneeID]
+        if(!exists){
+            ids[c.AssigneeID] = 1
+            jIds = append(jIds, strconv.FormatInt(c.AssigneeID,10) )
+        }
+        _, exists = ids[c.AcceptorID]
+        if(!exists){
+            ids[c.AcceptorID] = 1
+            jIds = append(jIds, strconv.FormatInt(c.AcceptorID,10) )
+        }
     }
 
     names, _ := api.IdsToNames( strings.Join(jIds,",") )
@@ -338,13 +350,21 @@ func (api API) Contracts(charID int64) (*ContractsResult, error) {
             if(ct.IssuerCorpID == rec.ID){
                 output.Contracts[i].IssuerCorpName = rec.Name
             }
+            if(ct.AssigneeID == rec.ID){
+                output.Contracts[i].AssigneeName = rec.Name
+            }
+            if(ct.AcceptorID == rec.ID){
+                output.Contracts[i].AcceptorName = rec.Name
+            }
         }
 
-        items,err := api.ContractItems(charID, ct.ContractID)
-        if err==nil {
-            output.Contracts[i].ContractItems = items.ContractItems
-        }else{
-            fmt.Println(err)
+        if loadItems {
+            items,err := api.ContractItems(charID, ct.ContractID)
+            if err==nil {
+                output.Contracts[i].ContractItems = items.ContractItems
+            }else{
+                fmt.Println(err)
+            }
         }
     }
 
