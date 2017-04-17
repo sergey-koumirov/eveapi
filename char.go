@@ -272,8 +272,8 @@ type Contract struct {
     IssuerCorpID    int64   `xml:"issuerCorpID,attr"`   //Characters corporation ID for the issuer.
     AssigneeID      int64   `xml:"assigneeID,attr"`     //ID to whom the contract is assigned, can be corporation or character ID.
     AcceptorID      int64   `xml:"acceptorID,attr"`     //Who will accept the contract. If assigneeID is same as acceptorID then CharacterID else CorporationID (The contract accepted by the corporation).
-    StartStationID  int32   `xml:"startStationID,attr"` //Start station ID (for Couriers contract).
-    EndStationID    int32   `xml:"endStationID,attr"`   //End station ID (for Couriers contract).
+    StartStationID  int64   `xml:"startStationID,attr"` //Start station ID (for Couriers contract).
+    EndStationID    int64   `xml:"endStationID,attr"`   //End station ID (for Couriers contract).
     Type            string  `xml:"type,attr"`           //Type of the contract (ItemExchange, Courier, Loan or Auction).
     Status          string  `xml:"status,attr"`         //Status of the the contract (Outstanding, Deleted, Completed, Failed, CompletedByIssuer, CompletedByContractor, Cancelled, Rejected, Reversed or InProgress)
     Title           string  `xml:"title,attr"`          //Title of the contract
